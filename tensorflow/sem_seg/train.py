@@ -13,15 +13,16 @@ sys.path.append(BASE_DIR)
 sys.path.append(ROOT_DIR)
 sys.path.append(os.path.join(ROOT_DIR, 'utils'))
 import provider
+import dataRead_seg
 import tf_util
 from model import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--num_gpu', type=int, default=2, help='the number of GPUs to use [default: 2]')
 parser.add_argument('--log_dir', default='log', help='Log dir [default: log]')
-parser.add_argument('--num_point', type=int, default=4096, help='Point number [default: 4096]')
+parser.add_argument('--num_point', type=int, default=100000, help='Point number [default: 4096]')
 parser.add_argument('--max_epoch', type=int, default=101, help='Epoch to run [default: 50]')
-parser.add_argument('--batch_size', type=int, default=12, help='Batch Size during training for each GPU [default: 24]')
+parser.add_argument('--batch_size', type=int, default=1, help='Batch Size during training for each GPU [default: 24]')
 parser.add_argument('--learning_rate', type=float, default=0.001, help='Initial learning rate [default: 0.001]')
 parser.add_argument('--momentum', type=float, default=0.9, help='Initial learning rate [default: 0.9]')
 parser.add_argument('--optimizer', default='adam', help='adam or momentum [default: adam]')
@@ -49,8 +50,8 @@ os.system('cp train.py %s' % (LOG_DIR))
 LOG_FOUT = open(os.path.join(LOG_DIR, 'log_train.txt'), 'w')
 LOG_FOUT.write(str(FLAGS)+'\n')
 
-MAX_NUM_POINT = 4096
-NUM_CLASSES = 13
+MAX_NUM_POINT = 100000
+NUM_CLASSES = 5
 
 BN_INIT_DECAY = 0.5
 BN_DECAY_DECAY_RATE = 0.5
@@ -59,37 +60,38 @@ BN_DECAY_CLIP = 0.99
 
 HOSTNAME = socket.gethostname()
 
-ALL_FILES = provider.getDataFiles('indoor3d_sem_seg_hdf5_data/all_files.txt') 
-room_filelist = [line.rstrip() for line in open('indoor3d_sem_seg_hdf5_data/room_filelist.txt')] 
-print len(room_filelist)
+#ALL_FILES = provider.getDataFiles('indoor3d_sem_seg_hdf5_data/all_files.txt') 
+#room_filelist = [line.rstrip() for line in open('indoor3d_sem_seg_hdf5_data/room_filelist.txt')] 
+#print len(room_filelist)
+TRAIN_FILES = provider.getDataFiles('trainlist.txt')
+TEST_FILES = provider.getDataFiles('testlist.txt')
 
 # Load ALL data
 data_batch_list = []
 label_batch_list = []
-for h5_filename in ALL_FILES:
-  data_batch, label_batch = provider.loadDataFile(h5_filename)
-  data_batch_list.append(data_batch)
-  label_batch_list.append(label_batch)
-data_batches = np.concatenate(data_batch_list, 0)
-label_batches = np.concatenate(label_batch_list, 0)
-print(data_batches.shape)
-print(label_batches.shape)
+#for h5_filename in ALL_FILES:
+#  data_batch, label_batch = provider.loadDataFile(h5_filename)
+#  data_batch_list.append(data_batch)
+#  label_batch_list.append(label_batch)
+#data_batches = np.concatenate(data_batch_list, 0)
+#label_batches = np.concatenate(label_batch_list, 0)
+#print(data_batches.shape)
+#print(label_batches.shape)
 
-test_area = 'Area_'+str(FLAGS.test_area)
-train_idxs = []
-test_idxs = []
-for i,room_name in enumerate(room_filelist):
-  if test_area in room_name:
-    test_idxs.append(i)
-  else:
-    train_idxs.append(i)
+#train_idxs = []
+#test_idxs = []
+#for i,room_name in enumerate(room_filelist):
+#  if test_area in room_name:
+#    test_idxs.append(i)
+#  else:
+#    train_idxs.append(i)
 
-train_data = data_batches[train_idxs,...]
-train_label = label_batches[train_idxs]
-test_data = data_batches[test_idxs,...]
-test_label = label_batches[test_idxs]
-print(train_data.shape, train_label.shape)
-print(test_data.shape, test_label.shape)
+#train_data = data_batches[train_idxs,...]
+#train_label = label_batches[train_idxs]
+#test_data = data_batches[test_idxs,...]
+#test_label = label_batches[test_idxs]
+#print(train_data.shape, train_label.shape)
+#print(test_data.shape, test_label.shape)
 
 
 def log_string(out_str):
@@ -245,11 +247,22 @@ def train_one_epoch(sess, ops, train_writer):
   is_training = True
   
   log_string('----')
-  current_data, current_label, _ = provider.shuffle_data(train_data[:,0:NUM_POINT,:], train_label) 
+
+  for train_filename in TRAIN_FILES:
+	    if train_filename=='':
+	     break
+	    data_batch, label_batch = dataRead_seg.dataLoader(train_filename)
+	    data_batch_list.append(data_batch)
+	    label_batch_list.append(label_batch)
+  current_data = np.concatenate(data_batch_list, 0)
+  current_label = np.concatenate(label_batch_list, 0)
+  
+  #current_data, current_label, _ = provider.shuffle_data(train_data[:,0:NUM_POINT,:], train_label) 
   
   file_size = current_data.shape[0]
-  num_batches = file_size // (FLAGS.num_gpu * BATCH_SIZE) 
-  
+  #num_batches = file_size // (FLAGS.num_gpu * BATCH_SIZE) 
+  num_batches =1
+
   total_correct = 0
   total_seen = 0
   loss_sum = 0

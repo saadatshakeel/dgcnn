@@ -12,7 +12,7 @@ import tf_util
 
 def placeholder_inputs(batch_size, num_point):
   pointclouds_pl = tf.placeholder(tf.float32,
-                   shape=(batch_size, num_point, 9))
+                   shape=(batch_size, num_point, 5))
   labels_pl = tf.placeholder(tf.int32,
                 shape=(batch_size, num_point))
   return pointclouds_pl, labels_pl
@@ -100,7 +100,7 @@ def get_model(point_cloud, is_training, bn_decay=None):
   net = tf_util.conv2d(net, 256, [1,1], padding='VALID', stride=[1,1],
              bn=True, is_training=is_training, scope='seg/conv2', is_dist=True)
   net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training, scope='dp1')
-  net = tf_util.conv2d(net, 13, [1,1], padding='VALID', stride=[1,1],
+  net = tf_util.conv2d(net, 5, [1,1], padding='VALID', stride=[1,1],
              activation_fn=None, scope='seg/conv3', is_dist=True)
   net = tf.squeeze(net, [2])
 
