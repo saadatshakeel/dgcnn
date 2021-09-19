@@ -1,4 +1,4 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import math
 import time
 import numpy as np
@@ -12,7 +12,7 @@ import tf_util
 
 def placeholder_inputs(batch_size, num_point):
   pointclouds_pl = tf.placeholder(tf.float32,
-                   shape=(batch_size, num_point, 5))
+                   shape=(batch_size, num_point, 3))
   labels_pl = tf.placeholder(tf.int32,
                 shape=(batch_size, num_point))
   return pointclouds_pl, labels_pl
